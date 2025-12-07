@@ -1,0 +1,44 @@
+// Prisma Schema for NanoLink
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// URL mapping table - stores the short code to original URL mapping
+model Url {
+  id          Int         @id @default(autoincrement())
+  originalUrl String      @map("original_url") @db.Text
+  shortCode   String      @unique @map("short_code") @db.VarChar(50)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  analytics   Analytics[]
+
+  @@index([shortCode])
+  @@map("urls")
+}
+
+/// Analytics table - stores access logs for each URL
+model Analytics {
+  id          Int      @id @default(autoincrement())
+  urlId       Int      @map("url_id")
+  accessTime  DateTime @default(now()) @map("access_time")
+  ipAddress   String?  @map("ip_address") @db.VarChar(64) // Hashed for privacy (LGPD/GDPR)
+  userAgent   String?  @map("user_agent") @db.Text
+  countryCode String?  @map("country_code") @db.VarChar(2) // ISO 3166-1 alpha-2
+  referer     String?  @db.Text
+
+  // Relations
+  url         Url      @relation(fields: [urlId], references: [id], onDelete: Cascade)
+
+  @@index([urlId])
+  @@index([accessTime])
+  @@map("analytics")
+}

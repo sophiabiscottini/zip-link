@@ -1,0 +1,122 @@
+# =================================
+# NanoLink Docker Compose
+# Development & Production Setup
+# =================================
+
+services:
+  # -------------------------
+  # API Service (NestJS)
+  # -------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nanolink-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-nanolink}:${POSTGRES_PASSWORD:-nanolink}@postgres:5432/${POSTGRES_DB:-nanolink}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - CACHE_TTL=${CACHE_TTL:-86400}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nanolink-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # -------------------------
+  # Worker Service (BullMQ)
+  # -------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nanolink-worker
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-nanolink}:${POSTGRES_PASSWORD:-nanolink}@postgres:5432/${POSTGRES_DB:-nanolink}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - ANALYTICS_BATCH_SIZE=${ANALYTICS_BATCH_SIZE:-100}
+      - ANALYTICS_BATCH_INTERVAL=${ANALYTICS_BATCH_INTERVAL:-5000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nanolink-network
+
+  # -------------------------
+  # PostgreSQL Database
+  # -------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: nanolink-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-nanolink}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-nanolink}
+      - POSTGRES_DB=${POSTGRES_DB:-nanolink}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nanolink-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nanolink} -d ${POSTGRES_DB:-nanolink}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -------------------------
+  # Redis (Cache & Queue)
+  # -------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: nanolink-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - nanolink-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+# -------------------------
+# Networks
+# -------------------------
+networks:
+  nanolink-network:
+    driver: bridge
+
+# -------------------------
+# Volumes
+# -------------------------
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

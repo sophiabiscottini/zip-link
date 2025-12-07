@@ -1,0 +1,31 @@
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Testing
+coverage/
+
+# Misc
+*.md
+LICENSE
+.git/
+.gitignore

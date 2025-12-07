@@ -93,8 +93,6 @@ nano-link/
 ├── libs/
 │   └── shared/              # Shared types and utilities
 ├── docker/                  # Docker configurations
-├── docs/                    # Documentation
-└── .docs/                   # Internal design documents
 ```
 
 ## 🚀 Getting Started ~ Let's Go! ₊˚ʚ ᗢ₊˚✧
@@ -119,7 +117,7 @@ pnpm install
 cp .env.example .env
 
 # Start infrastructure (PostgreSQL, Redis)
-docker-compose up -d postgres redis
+docker compose -f docker-compose.dev.yml up -d
 
 # Run database migrations
 pnpm prisma migrate dev
@@ -135,7 +133,7 @@ pnpm dev:worker
 
 ```bash
 # Build and start all services
-docker-compose up --build
+docker compose up --build
 
 # The API will be available at http://localhost:3000
 ```
@@ -245,6 +243,6 @@ This project is licensed under the MIT License (see the [LICENSE](LICENSE) file 
 
 ---
 
-**Made with ❤️ and ✨ by Sophia Biscottini**
+**Made with 🧡 and ✨ by Sophia Biscottini**
 
 ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧ ~ Happy Coding!*
