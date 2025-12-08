@@ -1,6 +1,6 @@
 {
   "name": "nano-link",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A high-performance URL shortening service focused on scalability and data analytics ✨",
   "author": "Sophia (Biscottini)",
   "license": "MIT",
@@ -47,6 +47,7 @@
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-fastify": "^10.4.0",
+    "@nestjs/throttler": "^6.5.0",
     "@prisma/client": "^5.22.0",
     "bullmq": "^5.25.0",
     "class-transformer": "^0.5.1",
