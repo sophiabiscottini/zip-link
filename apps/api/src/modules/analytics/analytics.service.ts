@@ -17,6 +17,8 @@ export interface AnalyticsStats {
   totalClicks: number;
   analytics: {
     clicksByDay: Array<{ date: string; count: number }>;
+    topCountries: Array<{ country: string; count: number }>;
+    topBrowsers: Array<{ browser: string; count: number }>;
     recentClicks: Array<{
       accessTime: Date;
       countryCode: string | null;
@@ -26,6 +28,16 @@ export interface AnalyticsStats {
 
 interface ClicksByDayRow {
   date: string;
+  count: bigint;
+}
+
+interface CountryRow {
+  country_code: string | null;
+  count: bigint;
+}
+
+interface BrowserRow {
+  browser: string;
   count: bigint;
 }
 
@@ -106,6 +118,42 @@ export class AnalyticsService {
       ORDER BY date DESC
     `;
 
+    // Get top countries (top 10)
+    const topCountriesRaw = await this.prisma.$queryRaw<CountryRow[]>`
+      SELECT 
+        country_code,
+        COUNT(*) as count
+      FROM analytics
+      WHERE url_id = ${url.id}
+        AND country_code IS NOT NULL
+      GROUP BY country_code
+      ORDER BY count DESC
+      LIMIT 10
+    `;
+
+    // Get top browsers (top 10) - parsed from user_agent
+    const topBrowsersRaw = await this.prisma.$queryRaw<BrowserRow[]>`
+      SELECT 
+        CASE
+          WHEN user_agent ILIKE '%Firefox%' THEN 'Firefox'
+          WHEN user_agent ILIKE '%Edg/%' THEN 'Edge'
+          WHEN user_agent ILIKE '%Chrome%' THEN 'Chrome'
+          WHEN user_agent ILIKE '%Safari%' AND user_agent NOT ILIKE '%Chrome%' THEN 'Safari'
+          WHEN user_agent ILIKE '%Opera%' OR user_agent ILIKE '%OPR/%' THEN 'Opera'
+          WHEN user_agent ILIKE '%MSIE%' OR user_agent ILIKE '%Trident%' THEN 'Internet Explorer'
+          WHEN user_agent ILIKE '%curl%' THEN 'curl'
+          WHEN user_agent ILIKE '%PostmanRuntime%' THEN 'Postman'
+          WHEN user_agent IS NULL THEN 'Unknown'
+          ELSE 'Other'
+        END as browser,
+        COUNT(*) as count
+      FROM analytics
+      WHERE url_id = ${url.id}
+      GROUP BY browser
+      ORDER BY count DESC
+      LIMIT 10
+    `;
+
     // Get recent clicks
     const recentClicks = await this.prisma.analytics.findMany({
       where: { urlId: url.id },
@@ -124,6 +172,14 @@ export class AnalyticsService {
       analytics: {
         clicksByDay: clicksByDay.map((row: ClicksByDayRow) => ({
           date: row.date,
+          count: Number(row.count),
+        })),
+        topCountries: topCountriesRaw.map((row: CountryRow) => ({
+          country: row.country_code || 'Unknown',
+          count: Number(row.count),
+        })),
+        topBrowsers: topBrowsersRaw.map((row: BrowserRow) => ({
+          browser: row.browser,
           count: Number(row.count),
         })),
         recentClicks,

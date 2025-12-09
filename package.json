@@ -1,6 +1,6 @@
 {
   "name": "nano-link",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A high-performance URL shortening service focused on scalability and data analytics ✨",
   "author": "Sophia (Biscottini)",
   "license": "MIT",
